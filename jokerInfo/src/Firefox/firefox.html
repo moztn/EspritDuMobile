@@ -1,0 +1,218 @@
+
+<!DOCTYPE HTML>
+<html>
+    <head>
+<link href="style.css" rel="stylesheet" type="text/css">
+<div id="butt"><button type="button" OnClick="javascript:window.location.reload()" name="Replay" value="Re-jouer" class="css3button">Re-jouer</button></div>
+        <style>
+            body {
+                margin: 0px;
+                padding: 0px;
+            }
+            
+            canvas {
+                border: 1px solid #9C9898;
+            }
+        </style>
+        <script src="file1.js">
+        </script>
+        <script src="file2.js">
+        </script>
+        <script>
+            function loadImages(sources, callback){
+                var images = {};
+                var loadedImages = 0;
+                var numImages = 0;
+                for (var src in sources) {
+                    numImages++;
+                }
+                for (var src in sources) {
+                    images[src] = new Image();
+                    images[src].onload = function(){
+                        if (++loadedImages >= numImages) {
+                            callback(images);
+                        }
+                    };
+                    images[src].src = sources[src];
+                }
+            }
+            
+            function isNearOutline(animal, outline){
+                var a = animal;
+                var o = outline;
+                if (a.x > o.x - 20 && a.x < o.x + 20 && a.y > o.y - 20 && a.y < o.y + 20) {
+                    return true;
+                }
+                else {
+                    return false;
+                }
+            }
+            
+            function drawBackground(background, bgImg, text){
+                var canvas = background.getCanvas();
+                var context = background.getContext();
+                
+                context.drawImage(bgImg, 0, 0);
+                context.font = "20pt Calibri";
+                context.textAlign = "center";
+                context.fillStyle = "white";
+                context.fillText(text, canvas.width / 2, 40);
+            }
+            
+            function initStage(images){
+                var stage = new Kinetic.Stage("container", 578, 530);
+                var background = new Kinetic.Layer();
+                var animalLayer = new Kinetic.Layer();
+                var score = 0;
+                
+                // image positions
+                var animals = {
+                    Linux: {
+                        x: 30,
+                        y: 70
+                    },
+                    Firefox: {
+                        x: 90,
+                        y: 70
+                    },
+                    Thunder_bird: {
+                        x: 80,
+                        y: 130
+                    },
+                    GNU: {
+                        x: 190,
+                        y: 70
+                    },
+                };
+                
+                var outlines = {
+                    Linux_black: {
+                        x: 220,
+                        y: 350
+                    },
+                    Firefox_black: {
+                        x: 300,
+                        y: 250
+                    },
+                    Thunder_bird_black: {
+                        x: 140,
+                        y: 220
+                    },
+                    GNU_black: {
+                        x: 60,
+                        y: 390
+                    },
+                };
+                
+                // create draggable animals    
+                for (var key in animals) {
+                    // anonymous function to induce scope
+                    (function(){
+                        var privKey = key;
+                        var anim = animals[key];
+                        
+                        var animal = new Kinetic.Image({
+                            image: images[key]
+                        });
+                        
+                        animal.x = anim.x;
+                        animal.y = anim.y;
+                        animal.draggable(true);
+                        animal.on("dragstart", function(){
+                            animal.moveToTop();
+                            animalLayer.draw();
+                        });
+                        
+                        /*
+                         * check if animal is in the right spot and
+                         * snap into place if it is
+                         */
+                        animal.on("dragend", function(){
+                            var outline = outlines[privKey + "_black"];
+                            if (!animal.inRightPlace && isNearOutline(animal, outline)) {
+                                animal.x = outline.x;
+                                animal.y = outline.y;
+                                animalLayer.draw();
+                                // disable drag and drop
+                                animal.draggable(false);
+                                animal.inRightPlace = true;
+                                
+                                if (++score >= 4) {
+                                    var text = "Felicitations :) !"
+                                    drawBackground(background, images.bg, text);
+                                }
+                            }
+                        });
+                        
+                        // make animal glow on mouseover
+                        animal.on("mouseover", function(){
+                            animal.setImage(images[privKey + "_glow"]);
+                            animalLayer.draw();
+                            document.body.style.cursor = "pointer";
+                        });
+                        
+                        // return animal on mouseout
+                        animal.on("mouseout", function(){
+                            animal.setImage(images[privKey]);
+                            animalLayer.draw();
+                            document.body.style.cursor = "default";
+                        });
+                        
+                        animalLayer.add(animal);
+                    })();
+                }
+                
+                // create animal outlines   
+                for (var key in outlines) {
+                    // anonymous function to induce scope
+                    (function(){
+                        var imageObj = images[key];
+                        var out = outlines[key];
+                        
+                        var outline = new Kinetic.Shape(function(){
+                            var context = this.getContext();
+                            context.drawImage(imageObj, 0, 0);
+                            //draw rect path so that the image is detectable
+                            context.beginPath();
+                            context.rect(0, 0, imageObj.width, imageObj.height);
+                        });
+                        
+                        outline.x = out.x;
+                        outline.y = out.y;
+                        
+                        animalLayer.add(outline);
+                    })();
+                }
+                
+                stage.add(background);
+                stage.add(animalLayer);
+                
+                drawBackground(background, images.bg, "Placer les icones dans leurs places");
+            }
+            
+            window.onload = function(){
+                var sources = {
+                    bg: "background.jpg",
+                    Linux: "Linux.png",
+                    Linux_glow: "Linux_2.png",
+                    Linux_black: "Linux_black.png",
+                    GNU: "GNU.png",
+                    GNU_glow: "GNU_2.png",
+                    GNU_black: "GNU_black.png",
+                    Thunder_bird: "Thunder_bird.png",
+                    Thunder_bird_glow: "Thunder_bird_2.png",
+                    Thunder_bird_black: "Thunder_bird_black.png",
+                    Firefox: "Firefox.png",
+                    Firefox_glow: "Firefox_2.png",
+                    Firefox_black: "Firefox_black.png",
+                };
+                loadImages(sources, initStage);
+            };
+        </script>
+    </head>
+    <body onmousedown="return false;">
+        <div id="container">
+        </div>
+    </body>
+</html>
+
